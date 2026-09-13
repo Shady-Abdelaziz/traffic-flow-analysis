@@ -14,10 +14,8 @@ Every vehicle is boxed with its tracking ID, type and speed.
 
 The videos are MP4 (mp4v). Download them and open them in VLC or Windows Media Player.
 
-![Raw frames beside the analysed frames](what_the_shapes_are.png)
-
-`what_the_shapes_are.png` shows the busiest frame of the light and heavy clips, raw beside
-analysed.
+[`what_the_shapes_are.png`](what_the_shapes_are.png) shows the busiest frame of the light and
+heavy clips, raw beside analysed.
 
 ## Charts over all 254 clips
 
