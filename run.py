@@ -169,17 +169,8 @@ def stage_train(args, paths: Paths) -> None:
     rows = {row["clip"]: row for row in _read_parameter_rows(paths)}
     print(f"{len(rows)} clips with parameters.\n")
 
-    # The probe is run on both splits on purpose. It opens no image at all, so whatever
-    # it scores is what the split hands every model for free -- and on the folds the
-    # archive ships that is most of the way to a good-looking result.
-    print("A model that reads no pixels, on each split:\n")
-    for label, folds in (("shipped folds", db.folds), ("grouped by recording", None)):
-        probe = nearest_recording_baseline(db, folds=folds)
-        print(f"  {label:22s} accuracy {probe.accuracy:6.1%}   "
-              f"macro-F1 {probe.macro_f1:.3f}")
-    print()
-
-    results = [majority_baseline(db)]
+    # Every score here uses folds that keep each recording run whole.
+    results = [majority_baseline(db), nearest_recording_baseline(db)]
     for result in results:
         print(result.summary())
 
@@ -189,28 +180,16 @@ def stage_train(args, paths: Paths) -> None:
             f"parameter classifier is not directly comparable to the baselines above.\n"
         )
 
-    # Scored on the grouped split, which is cross_validate's default. The shipped
-    # folds are reported alongside so the difference between them stays visible.
     parameter_model = cross_validate(
         db, make_fit_predict(rows), name="parameter classifier"
     )
     print(parameter_model.summary())
 
-    on_shipped = cross_validate(
-        db,
-        make_fit_predict(rows),
-        name="parameter classifier (shipped folds, leaky)",
-        folds=db.folds,
-    )
-    print(f"On the folds the archive ships it reads "
-          f"{on_shipped.accuracy:.1%} / {on_shipped.macro_f1:.3f} -- the difference "
-          f"is the near-duplicates, not the model.\n")
-
     target = paths.reports / "eval_parameters.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps(
-            [result.to_dict() for result in [*results, parameter_model, on_shipped]],
+            [result.to_dict() for result in [*results, parameter_model]],
             indent=2,
         ),
         encoding="utf-8",

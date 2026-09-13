@@ -5,23 +5,14 @@ classifier, the fine-tuned network, and the baselines. They differ only in the
 ``fit_predict`` function handed to it, so no variant can accidentally be measured on a
 different split, a different metric, or a different definition of "correct".
 
-**Which split, and why there are two.** The archive ships four folds in
-``EvalSet_train`` / ``EvalSet_test``. They are a round-robin by position -- clip *i*
-goes to test in fold *i* % 4 -- but consecutive clips are consecutive *recordings*:
-``...x01638`` and ``...x01639`` are five seconds apart, the same vehicles a few metres
-on. So a clip and its near-duplicate land on opposite sides, and **98.4% of test clips
-have an adjacent recording in their training fold**.
-
-That is measurable rather than arguable, and :func:`nearest_recording_baseline` measures
-it: a model that opens no image at all and copies the label of the nearest recording
-scores **0.790 macro-F1 on the shipped folds and 0.584 on grouped ones**. The shipped
-split hands over 0.207 of macro-F1 before any model starts.
+**Which split.** Consecutive clips are consecutive *recordings*: ``...x01638`` and
+``...x01639`` are five seconds apart, the same vehicles a few metres on. A split that
+puts them on opposite sides scores a clip against its own near-duplicate.
 
 The 254 clips form 14 separate runs, so keeping each one whole is possible.
-:func:`grouped_folds` does it with ``StratifiedGroupKFold``, which takes the adjacency
-to 0/254 while still spreading the three classes across the folds. It is the default
-here; ``db.folds`` is still accepted, because the gap between the two numbers is itself
-worth reporting.
+:func:`grouped_folds` does it with ``StratifiedGroupKFold``, which keeps every recording
+run in one fold while still spreading the three classes across the folds. It is the only
+split used here.
 
 **Accuracy hides a missing class.** The labels are 165 light / 45 medium / 44 heavy, so
 a model that never once predicts *medium* still reaches 65%. Results therefore carry
@@ -251,10 +242,9 @@ def cross_validate(
     fit_predict: FitPredict,
     *,
     name: str,
-    folds: Sequence[Fold] | None = None,
     labels: Sequence[str] = TRAFFIC_CLASSES,
 ) -> CrossValidationResult:
-    """Run ``fit_predict`` over four folds and pool the predictions.
+    """Run ``fit_predict`` over the :func:`grouped_folds` and pool the predictions.
 
     Parameters
     ----------
@@ -262,14 +252,10 @@ def cross_validate(
         The loaded database, supplying both the folds and the ground-truth labels.
     fit_predict:
         Called once per fold as ``fit_predict(train_names, test_names)`` and must
-        return a class for every test clip. It receives *names*, never indices --
-        the folds index into ``ImageMaster`` order, which differs from ``info.txt``
-        order, and resolving that here removes the chance of a silent mismatch.
+        return a class for every test clip. It receives clip *names*, never indices,
+        so there is no row order to get out of step.
     name:
         Label for the result, e.g. ``"majority-class baseline"``.
-    folds:
-        Which split to score over. Defaults to :func:`grouped_folds`; pass
-        ``db.folds`` to reproduce the leaky split the archive ships.
 
     Raises
     ------
@@ -280,7 +266,7 @@ def cross_validate(
     truth = db.labels()
     results: list[FoldResult] = []
 
-    for fold in folds if folds is not None else grouped_folds(db):
+    for fold in grouped_folds(db):
         predictions = fit_predict(fold.train, fold.test)
 
         missing = [clip for clip in fold.test if clip not in predictions]
@@ -311,9 +297,7 @@ def cross_validate(
 # harness as the real models. A baseline measured differently is not a baseline.
 
 
-def majority_baseline(
-    db: TrafficDatabase, *, folds: Sequence[Fold] | None = None
-) -> CrossValidationResult:
+def majority_baseline(db: TrafficDatabase) -> CrossValidationResult:
     """Always predict the most common class in the training fold. Scores 65.0%.
 
     The floor, not the bar: it never predicts *medium* or *heavy* at all, which is why
@@ -325,22 +309,14 @@ def majority_baseline(
         most_common = Counter(truth[clip] for clip in train).most_common(1)[0][0]
         return {clip: most_common for clip in test}
 
-    return cross_validate(db, fit_predict, name="majority-class baseline", folds=folds)
+    return cross_validate(db, fit_predict, name="majority-class baseline")
 
 
-def nearest_recording_baseline(
-    db: TrafficDatabase, *, folds: Sequence[Fold] | None = None
-) -> CrossValidationResult:
+def nearest_recording_baseline(db: TrafficDatabase) -> CrossValidationResult:
     """Copy the label of the nearest clip in recording order. Reads not one pixel.
 
-    This is the split's leak expressed as a model, and it is the bar a real model has
-    to clear. On the folds the archive ships it scores 0.790 macro-F1 -- above what the
-    motion features earn from actual pixels on the same folds -- because a clip's
-    five-seconds-earlier near-duplicate is sitting in the training set. On
-    :func:`grouped_folds` it has nothing to copy from and falls to 0.584.
-
-    Run it on both and the difference is the amount of macro-F1 a split gives away
-    before any model starts.
+    The bar a real model has to clear: recording time alone carries part of the label,
+    so on :func:`grouped_folds` this still scores 0.584 macro-F1.
     """
 
     def fit_predict(train: Sequence[str], test: Sequence[str]) -> dict[str, str]:
@@ -359,6 +335,4 @@ def nearest_recording_baseline(
             predictions[clip] = nearest[2]
         return predictions
 
-    return cross_validate(
-        db, fit_predict, name="nearest-recording probe (no pixels)", folds=folds
-    )
+    return cross_validate(db, fit_predict, name="nearest-recording probe (no pixels)")

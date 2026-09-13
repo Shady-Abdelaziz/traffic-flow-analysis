@@ -311,10 +311,7 @@ def _models(scores: dict | None) -> str:
     # Every figure in the paragraph below is read back out of the eval file rather than
     # typed in. They were literals until the numbers and the prose could drift apart.
     headline = scores.get("headline", "grouped by recording")
-    shipped = next((r["split"] for r in scores.get("results", [])
-                    if r.get("split") != headline), "shipped folds")
-    probe_shipped = _score(scores, shipped, "nearest recording", "macro_f1")
-    probe_grouped = _score(scores, headline, "nearest recording", "macro_f1")
+    probe = _score(scores, headline, "nearest recording", "macro_f1")
     majority = _score(scores, headline, "majority", "accuracy")
 
     # Class counts are the confusion matrix's row sums -- the truth totals.
@@ -327,11 +324,10 @@ def _models(scores: dict | None) -> str:
     lines += [
         "",
         "**The bar is a model that reads no pixels at all.** Each clip is a five-second "
-        "recording and the next clip is the next five seconds, so a clip's near-duplicate "
-        f"is usually one fold away: copying the nearest recording's label scores "
-        f"{probe_shipped:.3f} macro-F1 on the folds the archive ships, and "
-        f"{probe_grouped:.3f} once whole recordings are kept together. Scores here use "
-        f"the {headline} split for that reason. Macro-F1 is reported alongside accuracy "
+        "recording and the next clip is the next five seconds, so scores here use the "
+        f"{headline} split, which keeps whole recordings in one fold. Even then, copying "
+        f"the nearest recording's label scores {probe:.3f} macro-F1. Macro-F1 is "
+        "reported alongside accuracy "
         f"because the classes are {split_text} — the majority baseline reaches "
         f"{majority:.0%} accuracy while scoring 0.000 on {unscored} of the "
         f"{len(classes)} classes.",

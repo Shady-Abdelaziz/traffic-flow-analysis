@@ -3,9 +3,9 @@
 Two different things are checked here, and only one of them needs the 45 MB model file.
 
 **The scores.** ``eval_finetune.json`` carries the numbers quoted in the README
-and in the final report, for **two** splits: the folds shipped inside the archive, and
-one that keeps each recording whole. The confusion matrix of each is the raw evidence,
-so accuracy and macro-F1 are recomputed from it with scikit-learn and compared against
+and in the final report, on the split that keeps each recording whole. The confusion
+matrix is the raw evidence, so accuracy and macro-F1 are recomputed from it with
+scikit-learn and compared against
 what the notebook reported. This catches the failure that matters most: a report and a
 model that came from different runs. It needs no torch and no model file.
 
@@ -27,9 +27,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from artefacts import MODEL_PATH, REPORT_PATH, needs_model, needs_report
 
 CLASSES = ["light", "medium", "heavy"]
-#: The notebook scores every model twice. ``grouped by recording`` is the headline: the
-#: shipped folds put adjacent recordings of the same traffic on opposite sides.
-SPLITS = ["shipped folds", "grouped by recording"]
+#: The notebook scores every model on one split, which keeps each recording run in a
+#: single fold so adjacent recordings of the same traffic never straddle train and test.
 HEADLINE = "grouped by recording"
 
 
@@ -52,7 +51,7 @@ def labels_from(confusion: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def score(report: dict, split: str, name: str) -> dict:
-    """The one reported row for a model on a split. Names repeat across splits."""
+    """The one reported row for a model on a split."""
     return next(
         result for result in report["results"]
         if result["split"] == split and name in result["name"]
@@ -63,26 +62,24 @@ def score(report: dict, split: str, name: str) -> dict:
 
 
 @needs_report
-@pytest.mark.parametrize("split", SPLITS)
-def test_the_confusion_matrix_covers_the_whole_database(report, split):
-    confusion = np.array(report["confusion"][split])
+def test_the_confusion_matrix_covers_the_whole_database(report):
+    confusion = np.array(report["confusion"][HEADLINE])
     assert confusion.shape == (3, 3)
     assert confusion.sum() == 254
-    # info.txt's class balance, which both splits preserve: however the folds are drawn,
-    # cross_val_predict predicts every clip exactly once.
+    # info.txt's class balance: however the folds are drawn, cross_val_predict predicts
+    # every clip exactly once.
     assert confusion.sum(axis=1).tolist() == [165, 45, 44]
 
 
 @needs_report
-@pytest.mark.parametrize("split", SPLITS)
-def test_the_reported_scores_match_the_confusion_matrix(report, split):
+def test_the_reported_scores_match_the_confusion_matrix(report):
     """Both reported numbers, recomputed from the evidence rather than trusted.
 
     This catches the failure that matters most: a report and a model that came out of
     two different runs.
     """
-    true, predicted = labels_from(np.array(report["confusion"][split]))
-    reported = score(report, split, "resnet")
+    true, predicted = labels_from(np.array(report["confusion"][HEADLINE]))
+    reported = score(report, HEADLINE, "resnet")
 
     assert accuracy_score(true, predicted) == pytest.approx(reported["accuracy"], abs=1e-6)
     assert f1_score(true, predicted, average="macro") == pytest.approx(
@@ -91,24 +88,23 @@ def test_the_reported_scores_match_the_confusion_matrix(report, split):
 
 
 @needs_report
-def test_the_headline_is_the_split_without_the_leak(report):
+def test_the_headline_is_the_grouped_split(report):
     """Every number quoted in the README and the report is the grouped one."""
     assert report["headline"] == HEADLINE
 
 
 @needs_report
-@pytest.mark.parametrize("split", SPLITS)
-def test_the_model_beats_the_majority_floor_on_macro_f1(report, split):
+def test_the_model_beats_the_majority_floor_on_macro_f1(report):
     """Accuracy is not the test -- macro-F1 against a model that predicts one class.
 
     At 165/45/44 a classifier that says *light* every time reaches 65% accuracy while
     scoring zero on two classes out of three. Clearing it is the minimum claim.
     """
-    model = score(report, split, "resnet")
-    majority = score(report, split, "majority")
+    model = score(report, HEADLINE, "resnet")
+    majority = score(report, HEADLINE, "majority")
 
     assert model["macro_f1"] > majority["macro_f1"], (
-        f"on {split} the network scores {model['macro_f1']:.3f} macro-F1 against the "
+        f"the network scores {model['macro_f1']:.3f} macro-F1 against the "
         f"majority floor's {majority['macro_f1']:.3f}"
     )
 
@@ -118,23 +114,12 @@ def test_the_model_beats_the_probe_that_reads_no_pixels(report):
     """The claim the whole project rests on: the pixels are doing the work.
 
     The probe copies the label of the nearest recording and opens no image at all. On
-    the shipped folds that is genuinely hard to beat, because a clip and the recording
-    five seconds later straddle the split. On the grouped split it is the honest floor,
-    and the margin over it is the model's real contribution -- which is why the margin
-    is *larger* there, not smaller.
+    the grouped split it is the honest floor, and the margin over it is the model's real
+    contribution.
     """
-    margins = {
-        split: score(report, split, "resnet")["macro_f1"]
-        - score(report, split, "nearest recording")["macro_f1"]
-        for split in SPLITS
-    }
-    assert all(margin > 0.1 for margin in margins.values()), margins
-    assert margins[HEADLINE] > margins["shipped folds"], (
-        f"the model's margin over reading nothing is {margins[HEADLINE]:.3f} grouped "
-        f"and {margins['shipped folds']:.3f} on the shipped folds; if removing the leak "
-        f"ever stops widening that gap, the leak is no longer what the shipped folds "
-        f"were giving away"
-    )
+    margin = (score(report, HEADLINE, "resnet")["macro_f1"]
+              - score(report, HEADLINE, "nearest recording")["macro_f1"])
+    assert margin > 0.1, margin
 
 
 @needs_report
