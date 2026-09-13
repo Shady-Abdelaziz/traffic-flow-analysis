@@ -1,54 +1,46 @@
 # Demo
 
-| File | What it shows |
+Results you can view without installing anything.
+
+## Annotated videos
+
+Every vehicle is boxed with its tracking ID, type and speed.
+
+| Video | Traffic |
 |---|---|
-| `light_cctv052x2004080516x01640.mp4` | annotated light-traffic clip: boxes, ids, types, speeds · `yolo26m` |
-| `medium_cctv052x2004080516x01638.mp4` | the same for medium traffic · `yolo26m` |
-| `heavy_cctv052x2004080516x01646.mp4` | the same for heavy traffic · `yolo26m` |
-| `what_the_shapes_are.png` | the busiest frame of the light and heavy clips, raw beside annotated · `yolo26m` |
-| `fundamental_diagram.png` | speed against density over all 254 clips, with the fitted curve · batch pass, `yolo11n` |
-| `hour_profile.png` | level of service by hour of day · batch pass, `yolo11n` |
-| `lane_usage.png` | lane occupancy · batch pass, `yolo11n` |
-| `speed_distribution.png` | speeds per class against the posted limit · batch pass, `yolo11n` |
-| `notebooks/` | the Colab notebooks' saved figures and `results.md` with their text results (calibration, fine-tune scores) |
+| [`light_cctv052x2004080516x01640.mp4`](light_cctv052x2004080516x01640.mp4) | light |
+| [`medium_cctv052x2004080516x01638.mp4`](medium_cctv052x2004080516x01638.mp4) | medium |
+| [`heavy_cctv052x2004080516x01646.mp4`](heavy_cctv052x2004080516x01646.mp4) | heavy |
 
-The three videos and the before/after image come from `python run.py demo`, which detects just
-those clips with the default checkpoint (`yolo26m`) at imgsz 1280, so distant vehicles are
-still found. On three clips that takes minutes; over all 254 it would take many hours. The four charts cover all
-254 clips, so they come from the batch pass (`run.py detect` then `run.py all`).
-| `website_demo.mp4` | *to record:* the website live on a heavy clip, an upload, and the Results tab |
-| `live_heavy.png` · `live_light.png` · `results.png` | *to capture:* screenshots of the website |
+The videos are MP4 (mp4v). Download them and open them in VLC or Windows Media Player.
 
-The annotated clips are written as mp4v, which Windows' player and VLC open; browsers may not.
+![Raw frames beside the analysed frames](what_the_shapes_are.png)
 
-## Recording the website (≈ 90 s)
+`what_the_shapes_are.png` shows the busiest frame of the light and heavy clips, raw beside
+analysed.
 
-1. `python run.py serve` and wait for the page.
-2. Win + Alt + R to start recording (Xbox Game Bar).
-3. Live tab → Heavy → first clip. Let it finish, press Replay.
-4. Drop any 5–6 s video onto the drop zone.
-5. Results tab, scroll to the classifier card and the recommendations.
-6. Win + Alt + R to stop; move the file here as `website_demo.mp4`.
-7. Win + Shift + S for the three screenshots.
+## Charts over all 254 clips
 
-## Interview script (≈ 5 min)
+| Chart | Shows |
+|---|---|
+| [`fundamental_diagram.png`](fundamental_diagram.png) | speed against density, with the fitted traffic-flow curve |
+| [`hour_profile.png`](hour_profile.png) | speed and density by hour of day |
+| [`lane_usage.png`](lane_usage.png) | occupancy of each lane |
+| [`speed_distribution.png`](speed_distribution.png) | speeds per traffic class against the posted limit |
 
-1. **Problem.** Measure traffic from one fixed 320×240 camera with no ground truth.
-2. **Metres from one camera.** Painted edges → horizon; 18.15 m road width → camera height;
-   UniDepth → focal length. Check that used no speeds: free-flow 98.4 km/h vs 96.6 posted (+2%).
-3. **Live demo.** YOLO + ByteTrack every frame; every second `pipeline.measure` — the same
-   function the batch uses — gives speed (RANSAC fit), vehicles observed (≥ 5 frames in zone),
-   density → LOS; the CNN classifies 3 frames 1 s apart.
-4. **Results.** Critical density 31 pc/mi/ln, level of service F from 15:00 to 18:00 →
-   ramp metering.
-5. **Accuracy.** 93.7% / 0.888 macro-F1 with whole recordings held out, against a 65% floor and a
-   0.584 no-pixels bar.
-6. **Scope.** 5 s clips measure the moment recorded; turning does not occur on this mainline.
+## Colab notebook results
 
-## Submission zip (without the dataset)
+[`notebooks/results.md`](notebooks/results.md) collects the saved figures and printed results
+of the calibration and classifier-training notebooks.
 
-```powershell
-Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
-$items = Get-ChildItem -Force | Where-Object { $_.Name -notin @('archive', 'archive.zip', 'graphify-out', '.pytest_cache', '.claude', 'docs') }
-Compress-Archive -Path $items.FullName -DestinationPath "$HOME\Desktop\traffic_app_submission.zip" -Force
-```
+## How these files are made
+
+| Files | Command | Detector |
+|---|---|---|
+| videos and `what_the_shapes_are.png` | `python run.py demo` | `yolo26m` at imgsz 1280 |
+| charts | `python run.py detect`, then `python run.py all` | `yolo11n` at imgsz 640 |
+| `notebooks/` | `python run.py demo` | from the notebooks' saved outputs |
+
+The demo uses the larger `yolo26m` because three clips take only minutes. The charts cover
+all 254 clips, so they use the faster `yolo11n`. See
+[Models and hardware](../README.md#5-models-and-hardware).

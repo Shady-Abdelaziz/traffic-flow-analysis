@@ -239,10 +239,14 @@ def stage_visuals(args, paths: Paths) -> None:
             print(f"  {path}")
 
 
-def stage_demo(args, paths: Paths) -> None:
-    """The demo clips with the default detector: annotated videos and a before/after image in demo/.
+#: The demo clips use the more accurate checkpoint; the batch pass and live page use the default.
+DEMO_WEIGHTS = "yolo26m.pt"
 
-    Only three clips, so the accurate default checkpoint at a large input size (``--imgsz``,
+
+def stage_demo(args, paths: Paths) -> None:
+    """The demo clips with ``yolo26m``: annotated videos and a before/after image in demo/.
+
+    Only three clips, so the more accurate checkpoint at a large input size (``--imgsz``,
     1280 by default: distant vehicles stay several pixels across) costs minutes here, where
     a whole pass like that costs many hours. Their tables go to ``output/demo_tracks/``,
     apart from the batch tables, so the dataset-wide results never mix two detectors.
@@ -258,7 +262,7 @@ def stage_demo(args, paths: Paths) -> None:
 
     db, site = _load(paths)
     calibration = load_calibration(paths.calibration)
-    config = DetectorConfig(imgsz=args.imgsz)
+    config = DetectorConfig(weights=DEMO_WEIGHTS, imgsz=args.imgsz)
     demo, tracks = paths.root / "demo", paths.output / "demo_tracks"
     tracks.mkdir(parents=True, exist_ok=True)
     print(f"Demo clips with {config.weights}, imgsz={config.imgsz}, conf={config.confidence}.")
@@ -438,7 +442,7 @@ def build_parser() -> argparse.ArgumentParser:
     visuals.add_argument("--videos", action="store_true", help="also render annotated clips")
     visuals.set_defaults(func=stage_visuals)
 
-    demo = sub.add_parser("demo", help="demo clips with the default detector: videos and image in demo/")
+    demo = sub.add_parser("demo", help="demo clips with yolo26m: videos and image in demo/")
     demo.add_argument("--imgsz", type=int, default=1280,
                       help="inference size for the demo clips (default: 1280, for quality)")
     demo.set_defaults(func=stage_demo)

@@ -5,11 +5,11 @@ identity across frames. The detector is **not** fine-tuned, and could not be: th
 database ships no bounding boxes at all. COCO already separates car, motorcycle, bus and
 truck, which is exactly the classification the exam asks for.
 
-**Checkpoint.** ``yolo26m``: ``yolo11n`` misses some clear cars on this footage and reads
-many as trucks. ``yolo26m`` costs roughly ten times the compute per frame, so the batch
-pass behind the shipped ``output/`` results was run with ``yolo11n`` to finish on a laptop
-CPU. Every track table records the checkpoint that made it in a ``.json`` beside it. See
-:class:`DetectorConfig`.
+**Checkpoint.** ``yolo11n``, for the batch pass and the live page: a pass over all 254 clips
+takes about 25 minutes on a laptop CPU and a live upload takes seconds. ``yolo26m`` finds
+more of the cars ``yolo11n`` misses, but costs roughly ten times the compute per frame, so
+it is used only for the three demo clips (``python run.py demo``). Every track table
+records the checkpoint that made it in a ``.json`` beside it. See :class:`DetectorConfig`.
 
 **Input size.** The clips are 320x240 and distant vehicles are only a few pixels across,
 so frames are letterboxed up before inference. 640 is used because it keeps a live upload
@@ -51,12 +51,12 @@ class DetectorConfig:
     Attributes
     ----------
     weights:
-        COCO-pretrained checkpoint. ``yolo26m``, for accuracy: ``yolo11n`` misses some
-        clear cars on this footage and reads many as trucks. ``yolo26m`` is about 68 GFLOPs
-        against 6.5 at 640, roughly ten times the work per frame, so the shipped batch pass
-        over all 254 clips was run with ``yolo11n`` (about 25 minutes on a laptop CPU). A
-        table made with other weights counts as stale: ``run.py detect`` and the live page
-        re-detect it rather than reuse it.
+        COCO-pretrained checkpoint. ``yolo11n``, for speed: about 6.5 GFLOPs at 640 against
+        68 for ``yolo26m``, so the pass over all 254 clips takes about 25 minutes on a laptop
+        CPU and a live upload takes seconds. ``yolo26m`` finds more of the clear cars
+        ``yolo11n`` misses and reads fewer cars as trucks; ``run.py demo`` uses it for the
+        three demo clips. A table made with other weights counts as stale: ``run.py detect``
+        and the live page re-detect it rather than reuse it.
     imgsz:
         Inference size; frames are letterboxed up to it. 640, so a live upload takes
         seconds on a CPU rather than minutes. The cost is the most distant vehicles, the
@@ -107,7 +107,7 @@ class DetectorConfig:
         Recorded in each table's settings, so a table made without the crop is re-detected.
     """
 
-    weights: str = "yolo26m.pt"
+    weights: str = "yolo11n.pt"
     imgsz: int = 640
     confidence: float = 0.10
     iou: float = 0.5
