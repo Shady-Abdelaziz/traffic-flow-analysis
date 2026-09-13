@@ -272,7 +272,7 @@ def stage_serve(args, paths: Paths) -> None:
     print(f"Loading the models, then the website opens at {url}  (Ctrl+C to stop)")
     if not args.no_browser:
         threading.Timer(1.5, webbrowser.open, args=(url,)).start()
-    uvicorn.run(create_app(paths), host=args.host, port=args.port, log_level="warning")
+    uvicorn.run(create_app(paths, warm=True), host=args.host, port=args.port, log_level="warning")
 
 
 def stage_all(args, paths: Paths) -> None:

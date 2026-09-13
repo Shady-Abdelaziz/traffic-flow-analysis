@@ -32,7 +32,9 @@ __all__ = ["create_app"]
 STATIC = Path(__file__).parent / "static"
 
 
-def create_app(paths: Paths | None = None, models: Models | None = None) -> FastAPI:
+def create_app(paths: Paths | None = None, models: Models | None = None, warm: bool = False) -> FastAPI:
+    """Build the app. ``warm`` computes the Results answer in the background at startup,
+    so the first visit to that tab does not wait for every clip to be measured."""
     where = paths or Paths()
     site = load_site(where.config / "site.yaml")
     calibration = load_calibration(where.calibration)
@@ -51,6 +53,8 @@ def create_app(paths: Paths | None = None, models: Models | None = None) -> Fast
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        if warm:
+            threading.Thread(target=warm_results, daemon=True).start()
         yield
         # Shutting down: stop whatever is still analysing. The uploads are kept -- they
         # are the subject of the Results page now, not scratch files.
@@ -322,6 +326,10 @@ def create_app(paths: Paths | None = None, models: Models | None = None) -> Fast
 
     #: The last answer and the disk state it was computed from, so repeat visits are free.
     last: dict = {}
+    #: Measuring every clip takes seconds. Without this, two requests arriving together --
+    #: the page loading while the startup warm-up runs, say -- each measured everything.
+    #: The second now waits and gets the first one's answer.
+    computing = threading.Lock()
 
     @app.get("/api/results", summary="Findings over the clips that have saved detections")
     def results() -> dict:
@@ -330,18 +338,25 @@ def create_app(paths: Paths | None = None, models: Models | None = None) -> Fast
         Reading a precomputed table instead meant a deleted detection stayed on this page
         with its old numbers, and a clip analysed in the browser never reached it.
         """
-        state = tracks_state()
-        if last.get("state") != state:
-            measured = analyse_all(db, site, calibration, where) + analyse_uploads(site, calibration, where)
-            if not measured:
-                raise HTTPException(
-                    404, "No saved detections yet. Upload a video, play a clip, "
-                         "or run `python run.py detect`.")
-            report = where.models / "eval_finetune.json"
-            scores = json.loads(report.read_text(encoding="utf-8")) if report.exists() else None
-            last.clear()
-            last["state"], last["results"] = state, build_results(
-                [clip.to_row() for clip in measured], site, scores)
-        return last["results"]
+        with computing:
+            state = tracks_state()
+            if last.get("state") != state:
+                measured = analyse_all(db, site, calibration, where) + analyse_uploads(site, calibration, where)
+                if not measured:
+                    raise HTTPException(
+                        404, "No saved detections yet. Upload a video, play a clip, "
+                             "or run `python run.py detect`.")
+                report = where.models / "eval_finetune.json"
+                scores = json.loads(report.read_text(encoding="utf-8")) if report.exists() else None
+                last.clear()
+                last["state"], last["results"] = state, build_results(
+                    [clip.to_row() for clip in measured], site, scores)
+            return last["results"]
+
+    def warm_results() -> None:
+        try:
+            results()
+        except HTTPException:
+            pass  # nothing saved yet; the page says so when it asks
 
     return app

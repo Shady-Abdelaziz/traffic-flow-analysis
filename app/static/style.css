@@ -67,12 +67,13 @@ button:disabled { opacity: .45; cursor: not-allowed; }
                 font-weight: 600; text-align: left; line-height: 1.25; }
 .clips button:hover, .clips button.active { background: var(--accent-soft); color: var(--ink); }
 .clips button.active { box-shadow: inset 3px 0 0 var(--accent); }
-.clips .file { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.clips .file { font-family: var(--mono); font-size: 12px; }
 .clips li { display: flex; align-items: stretch; border-bottom: 1px solid var(--line-soft); min-width: 0; }
-/* The row's own button takes the slack and the name truncates, so Remove is never
-   pushed out of a 300px sidebar and the list never scrolls sideways. */
+/* The row's own button takes the slack and the full name wraps (breaking mid-name, since
+   file names have no spaces), so Remove is never pushed out of a 300px sidebar and the
+   list never scrolls sideways. */
 .clips li > button:first-child { flex: 1; min-width: 0; border-bottom: 0; }
-.clips .file { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.clips .file { display: block; max-width: 100%; overflow-wrap: anywhere; }
 .clips button.forget { width: auto; flex: none; align-self: center; margin: 0 4px; padding: 3px 8px; border: 1px solid var(--line);
                        border-radius: 6px; font-size: 11px; color: var(--ink-2); background: var(--card); }
 .clips button.forget:hover { border-color: var(--heavy-deep); color: var(--heavy-deep); background: var(--card); }

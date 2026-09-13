@@ -343,7 +343,8 @@ def recommendation_list(rows: list[dict], density: np.ndarray, speed: np.ndarray
         return []
     critical, capacity = fit.critical_density, fit.capacity_veh_per_h_per_ln
     over = [row for row in rows if _f(row["density_pc_mi_ln"]) > critical]
-    hours_over = sorted({int(row["hour"]) for row in over})
+    # Uploaded videos carry no hour of day.
+    hours_over = sorted({int(row["hour"]) for row in over if row["hour"] not in (None, "")})
     window = f"{min(hours_over):02d}:00–{max(hours_over) + 1:02d}:00" if hours_over else "the peak"
     return [
         {"title": f"Meter the S 188th St on-ramp during {window}.",
@@ -473,6 +474,8 @@ def build_results(rows: list[dict], site: SiteConfig, scores: dict | None = None
         classification = None
     return {
         "clips": len(rows),
+        # Uploads are the rows with no dataset class; the page shows them apart from the 254.
+        "uploads": sum(1 for row in rows if not row["traffic_class"]),
         "limit_kmh": site.roadway.speed_limit_kmh,
         "fundamental": fundamental,
         "points": points,

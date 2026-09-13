@@ -27,8 +27,8 @@ def test_no_speed_yet_says_so():
 def test_the_classification_card_uses_the_grouped_split():
     summary = classification_summary(json.loads(REPORT_PATH.read_text(encoding="utf-8")))
     assert summary["split"] == "grouped by recording"
-    assert summary["accuracy"] == pytest.approx(0.9449, abs=1e-3)
-    assert summary["recall"]["heavy"] == pytest.approx(39 / 44)
+    assert summary["accuracy"] == pytest.approx(0.9370, abs=1e-3)
+    assert summary["recall"]["heavy"] == pytest.approx(37 / 44)
     assert summary["majority_accuracy"] == pytest.approx(0.6496, abs=1e-3)
 
 

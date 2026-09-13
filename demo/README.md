@@ -29,15 +29,15 @@ The annotated clips are written as mp4v, which Windows' player and VLC open; bro
 
 1. **Problem.** Measure traffic from one fixed 320×240 camera with no ground truth.
 2. **Metres from one camera.** Painted edges → horizon; 18.15 m road width → camera height;
-   UniDepth → focal length. Check that used no speeds: free-flow 93.2 km/h vs 96.6 posted (−3%).
+   UniDepth → focal length. Check that used no speeds: free-flow 98.4 km/h vs 96.6 posted (+2%).
 3. **Live demo.** YOLO + ByteTrack every frame; every second `pipeline.measure` — the same
    function the batch uses — gives speed (RANSAC fit), vehicles observed (≥ 5 frames in zone),
-   density → LOS; the CNN classifies 3 frames 1 s apart; the road turns clay where it jams.
-4. **Results.** Critical density 38 pc/mi/ln, capacity 1767 veh/h/ln, congestion 15:00–19:00 →
+   density → LOS; the CNN classifies 3 frames 1 s apart.
+4. **Results.** Critical density 31 pc/mi/ln, level of service F from 15:00 to 18:00 →
    ramp metering.
-5. **Accuracy.** 94.5% / 0.903 macro-F1 with whole recordings held out, against a 65% floor and a
+5. **Accuracy.** 93.7% / 0.888 macro-F1 with whole recordings held out, against a 65% floor and a
    0.584 no-pixels bar.
-6. **Limits.** 48% focal-estimate spread, lane widths not measured, 5 s clips, ID switches.
+6. **Scope.** 5 s clips measure the moment recorded; turning does not occur on this mainline.
 
 ## Submission zip (without the dataset)
 

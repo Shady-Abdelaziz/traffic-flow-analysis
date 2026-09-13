@@ -1,24 +1,6 @@
 {
   "results": [
     {
-      "split": "shipped folds",
-      "name": "majority class",
-      "accuracy": 0.6496062992125984,
-      "macro_f1": 0.26252983293556087
-    },
-    {
-      "split": "shipped folds",
-      "name": "nearest recording (no pixels)",
-      "accuracy": 0.8779527559055118,
-      "macro_f1": 0.7902434730020937
-    },
-    {
-      "split": "shipped folds",
-      "name": "fine-tuned resnet18",
-      "accuracy": 0.9645669291338582,
-      "macro_f1": 0.938270753071512
-    },
-    {
       "split": "grouped by recording",
       "name": "majority class",
       "accuracy": 0.6496062992125984,
@@ -33,29 +15,12 @@
     {
       "split": "grouped by recording",
       "name": "fine-tuned resnet18",
-      "accuracy": 0.9448818897637795,
-      "macro_f1": 0.902750047060784
+      "accuracy": 0.937007874015748,
+      "macro_f1": 0.887911163585713
     }
   ],
   "headline": "grouped by recording",
   "confusion": {
-    "shipped folds": [
-      [
-        164,
-        1,
-        0
-      ],
-      [
-        1,
-        42,
-        2
-      ],
-      [
-        0,
-        5,
-        39
-      ]
-    ],
     "grouped by recording": [
       [
         164,
@@ -69,8 +34,8 @@
       ],
       [
         0,
-        5,
-        39
+        7,
+        37
       ]
     ]
   },

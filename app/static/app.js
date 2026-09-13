@@ -293,7 +293,8 @@ async function loadResults() {
   const tile = (label, value, sub) => `<div class="tile"><span>${label}</span><b>${value}</b><small>${sub}</small></div>`;
   $("results-body").innerHTML = `
     <div class="tiles">
-      ${tile("Videos analysed", body.clips, `of 254 · ${body.clips === 1 ? "this one has" : "these have"} saved detections`)}
+      ${tile("Videos analysed", body.clips - body.uploads,
+             `of 254 dataset clips${body.uploads ? ` · + ${body.uploads} upload${body.uploads === 1 ? "" : "s"}` : ""}`)}
       ${tile("Free-flow speed", f ? f.free_flow_speed_kmh.toFixed(0) : "—", `km/h · posted ${body.limit_kmh.toFixed(0)}`)}
       ${tile("Capacity", f ? f.capacity_veh_per_h_per_ln.toFixed(0) : "—", "veh/h/lane")}
       ${tile("Critical density", f ? f.critical_density.toFixed(0) : "—", "pc/mi/lane")}

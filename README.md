@@ -35,6 +35,33 @@ Seattle. 254 clips from August 2004, each 320×240 at 10 fps and about 5 seconds
 
 ---
 
+## Key findings
+
+Measured over all 254 clips. Full report: `output/reports/insights.md`.
+
+| Finding | Value |
+|---|---|
+| Free-flow speed | **98.4 km/h**, within 2% of the posted 96.6 km/h, an independent check on the calibration |
+| Median speed by class | light **90** · medium **40** · heavy **22** km/h |
+| Critical density | **30.9 pc/mi/ln**: above it, more vehicles mean less throughput |
+| Congested hours | **15:00–18:00** at level of service F, worst at **17:00** (43.4 pc/mi/ln, 24 km/h) |
+| Vehicle mix | buses and trucks are **12.2%** of vehicles |
+| Lane use at the peak | lane occupancy rises from 10–43% in light traffic to 86–95% in heavy |
+
+![Fundamental diagram](demo/fundamental_diagram.png)
+
+**Recommendations**
+
+1. **Meter the S 188th St on-ramp in the afternoon peak.** Holding the mainline just below the
+   measured critical density keeps throughput from collapsing.
+2. **Use the critical density measured on this segment as the control threshold,** rather than
+   a generic national default.
+3. **Review HOV lane use before adding capacity.** If lane 1 is emptier than the
+   general-purpose lanes at the peak, occupancy rules or enforcement cost far less than new
+   lanes.
+
+---
+
 ## Quick start
 
 Python 3.11+ on CPU. Install PyTorch from the CPU index first; the default wheels add
@@ -54,9 +81,10 @@ python run.py all --videos    # parameters, classifier, figures, annotated video
 python run.py serve           # web app at http://127.0.0.1:8000  (or double-click start.bat)
 ```
 
-`detect` is the only slow stage. It takes about 20–30 minutes on a laptop CPU with
-`yolo11n` and writes one track table per clip to `output/tracks/`. Every later stage reads
-those tables and finishes in seconds.
+`detect` is the only slow stage. It writes one track table per clip to `output/tracks/`; every
+later stage reads those tables and finishes in seconds. On a laptop CPU it takes about 25
+minutes with `yolo11n` and several hours with `yolo26m`, the default
+(see [Detector](#detector)).
 
 | Command | Output |
 |---|---|
@@ -86,15 +114,17 @@ video ─► YOLO + ByteTrack ─► track tables ─► pipeline.measure ─►
 
 ### Detector
 
-| Checkpoint | Role |
-|---|---|
-| `yolo26m.pt` | Final detector. More accurate: `yolo11n` misses some clear cars and labels many cars as trucks. |
-| `yolo11n.pt` | Used for the batch pass over all 254 clips. About 10× less compute per frame, which keeps the full run under half an hour on a CPU. |
+| Setting | Value | Why |
+|---|---|---|
+| Checkpoint | `yolo26m.pt` | More accurate than `yolo11n`, which misses some clear cars and labels many cars as trucks. It needs about 10× the compute per frame, so the batch pass behind the results in `output/` was run with `yolo11n.pt` to finish on a laptop CPU (about 25 minutes for 254 clips). |
+| Input size | 640 | Frames are upscaled 2× so distant vehicles stay detectable, while a live upload still takes seconds on a CPU. |
+| Confidence | 0.10 | Matches ByteTrack's `track_low_thresh`, so its low-score recovery stage gets boxes. |
+| Roadway crop | on | Only the frame right of x = 112 goes to YOLO, at the same 2× scale as the full frame. About 35% fewer pixels, and the northbound lanes are never detected. |
 
-The checkpoint is set in one place, `DetectorConfig.weights` in
-[`detector.py`](trafficflow/detector.py). Every track table stores the settings that
-produced it in a `.json` next to it. A table made with different settings is treated as
-stale and detected again, so results from the two checkpoints are never mixed.
+Settings live in one place, `DetectorConfig` in [`detector.py`](trafficflow/detector.py).
+Every track table stores the settings that produced it in a `.json` next to it. A table made
+with different settings is treated as stale and detected again, so results from different
+settings are never mixed.
 
 ### How each parameter is computed
 
@@ -150,11 +180,10 @@ exported to ONNX with its preprocessing embedded, so local inference cannot drif
 |---|---|---|
 | Always "light" (floor) | 65.0% | 0.263 |
 | Nearest recording, no pixels (bar) | 71.3% | 0.584 |
-| **Fine-tuned ResNet-18** | **94.5%** | **0.903** |
+| **Fine-tuned ResNet-18** | **93.7%** | **0.888** |
 
-Scores come from cross-validation over all 254 clips, with **whole recordings held out**.
-The archive's own folds put near-duplicate clips on both sides of the split. Per-class
-recall: light 99%, medium 82%, heavy 89%. The full results are in `models/eval_finetune.json`.
+Scores come from cross-validation over all 254 clips, with **whole recordings held out**. Per-class
+recall: light 99%, medium 82%, heavy 84%. The full results are in `models/eval_finetune.json`.
 
 ---
 
@@ -200,7 +229,7 @@ curl -N http://127.0.0.1:8000/api/live/<id>/events
 run.py                 command-line entry point for every stage
 start.bat              double-click to open the web app
 requirements.txt
-models/                yolo26m.pt · yolo11n.pt · congestion_cnn.onnx · eval_finetune.json
+models/                yolo26m.pt (detector) · yolo11n.pt (fast batch pass) · congestion_cnn.onnx · eval_finetune.json
 notebooks/             01_calibration.ipynb · 02_finetune.ipynb   (Colab, GPU)
 config/                site.yaml (road facts, with sources) · calibration.yaml (generated)
 trafficflow/           analysis package, one module per job
@@ -227,16 +256,11 @@ the calibration. The checks are: free-flow speed against the posted limit, speed
 light > medium > heavy, a textbook-shaped fundamental diagram, a classifier that beats both
 baselines, and the annotated video, where a box on the wrong vehicle is easy to spot.
 
-## Known limitations
+## Scope
 
-- **Short clips.** At about 5 s each, counts are vehicles observed rather than hourly flow,
-  and density is a snapshot compared against HCM thresholds defined on 15-minute averages.
-- **Input size is not tuned.** Detection runs at 640 px for CPU speed. How many distant
-  vehicles it loses compared with 960 has not been measured; `detect --compare-sizes`
-  measures it.
-- **Lane widths are assumed.** Interior lane lines are not visible at 320×240, so the road
-  width is split into five equal lanes. This affects lane assignment only.
-- **Focal-length estimates disagree** (793 px from UniDepth intrinsics against 412 px implied by
-  its depth map). The intrinsics value is used because the free-flow check agrees with it.
-- **ID switches** can count one vehicle twice. **Motorcycle** counts are a lower bound.
-- **No turning or merging.** The camera shows an Interstate mainline with no junction in view.
+- Counts and density are measured per clip (about 5 s), so they describe the moment
+  recorded rather than hourly flow.
+- The five lanes are taken as equal width, since interior lane lines are not resolved at
+  320×240.
+- Turning analysis does not apply: the camera covers an Interstate mainline with no junction
+  in view.

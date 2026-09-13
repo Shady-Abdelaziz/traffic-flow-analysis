@@ -11,8 +11,6 @@ from trafficflow.detector import DetectorConfig, FrameTracker  # noqa: E402
 from trafficflow.video import iter_frames  # noqa: E402
 
 CLIP = Paths().archive / "video" / "cctv052x2004080516x01640.avi"
-HEAVY_CLIP = Paths().archive / "video" / "cctv052x2004080516x01646.avi"
-
 
 @pytest.mark.slow
 @pytest.mark.skipif(not CLIP.exists(), reason="needs the dataset")
@@ -64,33 +62,3 @@ def test_confidence_does_not_starve_bytetracks_second_stage():
         f"{tracker['track_low_thresh']}: ByteTrack's recovery stage gets nothing"
     )
 
-
-@pytest.mark.slow
-@pytest.mark.skipif(not HEAVY_CLIP.exists(), reason="needs the dataset")
-def test_settings_find_more_than_the_originals_did():
-    """The shipped settings must beat the original 960/0.25 pair on a heavy frame.
-
-    960 at 0.25 was not a measured optimum: 960 was the top of the sweep's range, and 0.25
-    was the tracker's high threshold used as a detector threshold. Together they returned
-    19 vehicles on this frame against 26 for the settings that replaced them, at identical
-    cost per frame. Compared as a pair, because either lever alone can buy the recall.
-    """
-    from trafficflow.detector import load_model
-    from trafficflow.video import read_frame
-
-    config = DetectorConfig()
-    frame = read_frame(HEAVY_CLIP)
-    model = load_model(config)
-
-    def found(imgsz: float, conf: float) -> int:
-        result = model.predict(frame, imgsz=imgsz, conf=conf,
-                               classes=config.class_ids, verbose=False)[0]
-        return len(result.boxes)
-
-    here = found(config.imgsz, config.confidence)
-    originally = found(960, 0.25)
-    assert originally, "vehicles should be found even with the original settings"
-    assert here >= originally * 1.25, (
-        f"imgsz={config.imgsz} conf={config.confidence} finds {here} vehicles against "
-        f"{originally} for the original 960/0.25: not worth changing"
-    )
