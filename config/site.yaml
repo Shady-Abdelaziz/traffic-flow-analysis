@@ -1,0 +1,107 @@
+# =============================================================================
+# site.yaml -- measured facts about the road, hand-written, never written by code.
+#
+# What turns pixels into metres is config/calibration.yaml, measured from the video.
+# This file holds only what the footage cannot supply, and says why for each one.
+#
+# The generated counterpart is config/calibration.yaml, which the calibration
+# notebook overwrites. The two are kept apart on purpose -- dumping YAML from code
+# destroys comments, and the comments here are the point.
+# =============================================================================
+
+# Both lines below are quoted from the database's own README_TRAFFICDB, which records
+# City "Seattle, WA.", Location "I-5 S 188th St.", Direction "looking south",
+# Traffic "Southbound", Date "08/05/2004 to 08/06/2004" and Loop "152.2".
+#
+# A latitude, longitude and corrected milepost used to sit here, taken from WSDOT's
+# current camera inventory. They were deleted: nothing read them, they described a
+# different camera two decades later, and they contradicted the milepost the database
+# itself records. Where the camera sits on a map changes no measurement in this project.
+location:
+  description: "Interstate 5 southbound at S 188th St, Seattle, Washington"
+  recorded: "2004-08-05 to 2004-08-06, daytime"
+
+# -----------------------------------------------------------------------------
+# Roadway.
+#
+# Almost everything that used to live here has been deleted. The cross-section,
+# the curve radius, the shoulders, the grade and the painted-line offsets were all
+# imported from a 2024 WSDOT highway log, OpenStreetMap and a USGS elevation model,
+# and every one of them described a later era than this August 2004 footage --
+# the live camera at this milepost is not even the same camera. Width, horizon,
+# camera height and focal length are now measured from the video itself and live
+# in config/calibration.yaml.
+#
+# Two values remain, for the two reasons below.
+# -----------------------------------------------------------------------------
+roadway:
+  # The one thing that cannot be recovered from this footage. The interior lane
+  # lines are invisible at 320x240 -- section 3 of the calibration notebook shows
+  # three continuous markings and nothing between them -- so the lanes cannot be
+  # counted from the image.
+  #
+  # THIS IS THE ONE EXTERNAL NUMBER THAT STILL ENTERS A MEASURED RESULT.
+  #
+  # It divides the measured road width into lanes, which sets lane occupancy and
+  # lane-change counts. It also enters density: density.py turns the measurement
+  # zone into LANE-miles with it, so the reported density scales as 1/lane_count,
+  # and the Level of Service graded from that density moves with it too. Vehicle
+  # count and speed never read it.
+  #
+  # Deriving it from the traffic itself is the honest fix, and it is available from
+  # this footage: vehicles drive in lanes, so a histogram of lateral positions over
+  # many tracks peaks at the lane centres. It needs output/tracks/, which the
+  # detection pass has not produced yet.
+  lane_count: 5
+
+  # Reference only. Drawn on the speed chart and quoted in the report so a reader
+  # can judge the measurements against something familiar. It never enters a
+  # calculation -- nothing is scaled, clipped or corrected by it.
+  speed_limit_kmh: 96.5606       # 60 mph posted
+
+# -----------------------------------------------------------------------------
+# Image geometry. Pixel values refer to the native 320x240 frame.
+# -----------------------------------------------------------------------------
+image:
+  width: 320
+  height: 240
+  fps: 10.0
+
+  # Left edge of the region containing the southbound roadway.
+  #
+  # Everything left of this is the embankment, the barrier, and -- the reason this
+  # crop exists -- the opposing NORTHBOUND carriageway, whose traffic peaks at the
+  # opposite time of day and would otherwise contaminate both the vehicle counts
+  # and anything trained on raw frames.
+  #
+  # The yellow edge line sits at x ~= 127 on day 2, which is also the origin the
+  # database authors chose for their 192x192 patches. 112 is used instead because
+  # the camera moved between the two recording days (see calibration.yaml):
+  # cropping at 127 loses the yellow line entirely on day 1. At 112 there is still
+  # ~9 px of margin after the shift, and northbound (which ends near x = 60) is
+  # still fully excluded.
+  roadway_crop_x: 112
+
+  # The burn-in captions -- "I-5 / S 188TH ST" top-left, "(c) WSDOT" bottom-right --
+  # are identical in all 254 clips, so they carry no label information and need no
+  # masking. Checked explicitly for a timestamp: there is none. That matters,
+  # because recording time alone carries most of the label on this database -- a
+  # classifier that reads no pixels and copies the nearest recording's class scores
+  # 0.790 macro-F1 on the shipped folds -- so a legible clock would have been a
+  # trivial shortcut for any model.
+  has_burnt_in_timestamp: false
+
+# -----------------------------------------------------------------------------
+# Highway Capacity Manual level-of-service thresholds for a basic freeway segment,
+# in passenger cars per mile per lane. Used to turn a measured density into a
+# letter grade.
+# -----------------------------------------------------------------------------
+level_of_service:
+  density_bounds_pc_per_mi_per_ln:
+    A: 11
+    B: 18
+    C: 26
+    D: 35
+    E: 45
+    # F: anything above E, i.e. breakdown
+  capacity_veh_per_h_per_ln: 2300   # nominal; the measured value is an output

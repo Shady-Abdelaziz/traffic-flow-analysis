@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FAF8F5">
+  <title>Traffic Flow · I-5 live analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Manrope:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="/static/style.css?v=25">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">TF</span>
+      <div><h1>Traffic Flow</h1><p>I-5 southbound · S 188th St · Seattle</p></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="live" aria-selected="true">Live</button>
+      <button role="tab" data-tab="results" aria-selected="false">Results</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="live" class="live">
+      <aside class="card picker">
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="video/*">
+          <strong>Drop a video</strong><span>or click to choose · 5–10 s</span>
+        </label>
+        <h2 class="section">In this app <span id="video-count" class="count">0</span></h2>
+        <ul class="clips" id="videos"></ul>
+
+        <button id="clear-cache" class="danger" disabled>Clear all videos</button>
+      </aside>
+
+      <div class="stage">
+        <div class="screen">
+          <img id="frame" alt="Annotated frame" hidden>
+          <p class="empty" id="empty">Drop a video above to start.</p>
+          <div class="working" id="working" hidden>
+            <b id="working-step">Analysing…</b>
+            <div class="working-bar"><i id="working-bar"></i></div>
+            <small id="working-count"></small>
+          </div>
+          <div class="glass tl" id="cnn-panel"><span>Congestion</span><b id="cnn">—</b><small id="cnn-conf"></small></div>
+          <div class="glass tr" id="los-panel"><span>LOS</span><b id="los">—</b></div>
+        </div>
+
+        <div class="card insight" id="insight">Waiting for a video</div>
+
+        <div class="card controls">
+          <button id="replay" class="primary" disabled>Replay</button>
+          <button id="stop" hidden>Stop</button>
+          <input type="range" id="timeline" min="0" max="0" value="0" disabled aria-label="Timeline">
+          <label class="fps">FPS <input type="range" id="fps" min="1" max="60" value="10" aria-label="Playback frames per second"><b id="fps-value">10</b></label>
+          <span class="status" id="status">idle</span>
+        </div>
+        <p class="note" id="note" hidden></p>
+
+        <div class="tiles">
+          <div class="tile"><span>Median speed</span><b id="speed">—</b><small id="speed-sub">km/h</small></div>
+          <div class="tile"><span>Density</span><b id="density">—</b><small>pc/mi/lane</small></div>
+          <div class="tile"><span>Vehicles observed</span><b id="counted">—</b><small id="tracks">in the zone ≥ 0.5 s</small></div>
+          <div class="tile"><span>In view</span><b id="inview">—</b><small>this frame</small></div>
+        </div>
+
+        <div class="cards">
+          <div class="card"><h2>Speed over time</h2><svg id="spark" viewBox="0 0 300 90" role="img" aria-label="Median speed over time"></svg></div>
+          <div class="card"><h2>Lane occupancy</h2><div class="bars" id="lanes"></div><small id="changes"></small></div>
+          <div class="card"><h2>Vehicle types</h2><div class="bars" id="types"></div></div>
+        </div>
+
+        <div class="card">
+          <h2>Vehicles in view</h2>
+          <table><thead><tr><th>ID</th><th>Type</th><th class="num">Lane</th><th class="num">km/h</th></tr></thead>
+            <tbody id="vehicles"><tr><td colspan="4" class="muted">Nothing yet.</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" hidden>
+      <div id="results-body"><p class="muted">Loading results…</p></div>
+    </section>
+  </main>
+  <script src="/static/app.js?v=26"></script>
+</body>
+</html>

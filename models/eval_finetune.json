@@ -1,0 +1,112 @@
+{
+  "results": [
+    {
+      "split": "shipped folds",
+      "name": "majority class",
+      "accuracy": 0.6496062992125984,
+      "macro_f1": 0.26252983293556087
+    },
+    {
+      "split": "shipped folds",
+      "name": "nearest recording (no pixels)",
+      "accuracy": 0.8779527559055118,
+      "macro_f1": 0.7902434730020937
+    },
+    {
+      "split": "shipped folds",
+      "name": "fine-tuned resnet18",
+      "accuracy": 0.9645669291338582,
+      "macro_f1": 0.938270753071512
+    },
+    {
+      "split": "grouped by recording",
+      "name": "majority class",
+      "accuracy": 0.6496062992125984,
+      "macro_f1": 0.26252983293556087
+    },
+    {
+      "split": "grouped by recording",
+      "name": "nearest recording (no pixels)",
+      "accuracy": 0.7125984251968503,
+      "macro_f1": 0.5836557812001065
+    },
+    {
+      "split": "grouped by recording",
+      "name": "fine-tuned resnet18",
+      "accuracy": 0.9448818897637795,
+      "macro_f1": 0.902750047060784
+    }
+  ],
+  "headline": "grouped by recording",
+  "confusion": {
+    "shipped folds": [
+      [
+        164,
+        1,
+        0
+      ],
+      [
+        1,
+        42,
+        2
+      ],
+      [
+        0,
+        5,
+        39
+      ]
+    ],
+    "grouped by recording": [
+      [
+        164,
+        1,
+        0
+      ],
+      [
+        2,
+        37,
+        6
+      ],
+      [
+        0,
+        5,
+        39
+      ]
+    ]
+  },
+  "preprocessing": {
+    "classes": [
+      "light",
+      "medium",
+      "heavy"
+    ],
+    "crop_x": 112,
+    "first_frame": 2,
+    "gap": 10,
+    "n_frames": 3,
+    "size": 160,
+    "colour": "RGB",
+    "n_keep": 5,
+    "test_starts": [
+      0,
+      10,
+      20
+    ],
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "training": {
+    "arch": "resnet18",
+    "epochs": 60,
+    "batch": 32,
+    "lr": 0.0003
+  }
+}
