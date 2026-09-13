@@ -292,7 +292,7 @@ def stage_demo(args, paths: Paths) -> None:
             raw = cv2.resize(image, None, fx=3, fy=3, interpolation=cv2.INTER_NEAREST)
             panels.append(np.hstack([raw, annotate_frame(image, rows, speeds, clip_badge(parameters))]))
 
-    target = demo / "what_the_shapes_are.png"
+    target = demo / "before_after.png"
     cv2.imwrite(str(target), np.vstack(panels))
     print(f"  {target}")
 

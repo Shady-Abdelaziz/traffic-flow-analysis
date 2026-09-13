@@ -14,7 +14,7 @@ Every vehicle is boxed with its tracking ID, type and speed.
 
 The videos are MP4 (mp4v). Download them and open them in VLC or Windows Media Player.
 
-[`what_the_shapes_are.png`](what_the_shapes_are.png) shows the busiest frame of the light clip,
+[`before_after.png`](before_after.png) shows the busiest frame of the light clip,
 raw beside analysed.
 
 ## Charts over all 254 clips
@@ -35,7 +35,7 @@ of the calibration and classifier-training notebooks.
 
 | Files | Command | Detector |
 |---|---|---|
-| videos and `what_the_shapes_are.png` | `python run.py demo` | `yolo26m` at imgsz 1280 |
+| videos and `before_after.png` | `python run.py demo` | `yolo26m` at imgsz 1280 |
 | charts | `python run.py detect`, then `python run.py all` | `yolo11n` at imgsz 640 |
 | `notebooks/` | `python run.py demo` | from the notebooks' saved outputs |
 

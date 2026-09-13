@@ -6,7 +6,7 @@ class, and turns those numbers into insights and recommendations for traffic man
 It works in two ways: a batch pipeline over the full dataset, and a web app that analyses any
 video live in the browser.
 
-![Raw frames beside the same frames analysed](demo/what_the_shapes_are.png)
+![Raw frames beside the same frames analysed](demo/before_after.png)
 
 ---
 
@@ -17,7 +17,7 @@ No installation needed: every result below is already in the repository.
 | What | File |
 |---|---|
 | Annotated videos: every vehicle boxed with its ID, type and speed | [light traffic](demo/light_cctv052x2004080516x01640.mp4) · [medium traffic](demo/medium_cctv052x2004080516x01638.mp4) · [heavy traffic](demo/heavy_cctv052x2004080516x01646.mp4) |
-| Before and after: raw frames beside the analysed ones | [`demo/what_the_shapes_are.png`](demo/what_the_shapes_are.png) |
+| Before and after: raw frames beside the analysed ones | [`demo/before_after.png`](demo/before_after.png) |
 | Charts over all 254 clips | [speed vs density](demo/fundamental_diagram.png) · [speed by hour](demo/hour_profile.png) · [lane usage](demo/lane_usage.png) · [speed by traffic class](demo/speed_distribution.png) |
 | Full written analysis and recommendations | [`output/reports/insights.md`](output/reports/insights.md) |
 | Every parameter for every clip | [`output/parameters/clips.csv`](output/parameters/clips.csv) |
