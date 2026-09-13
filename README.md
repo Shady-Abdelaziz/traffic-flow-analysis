@@ -92,6 +92,7 @@ minutes with `yolo11n` and several hours with `yolo26m`, the default
 | `python run.py train` | `output/reports/eval_parameters.json`: parameter classifier vs baselines |
 | `python run.py visuals [--videos]` | `output/figures/*.png`, `output/videos/*.mp4` |
 | `python run.py report` | `output/reports/insights.md` |
+| `python run.py demo` | `demo/*.mp4`, `demo/what_the_shapes_are.png`: the three demo clips detected with the default `yolo26m` at imgsz 1280 |
 | `python run.py detect --compare-sizes --weights yolo11n.pt yolo26m.pt` | detection recall and speed per model and input size |
 
 ---

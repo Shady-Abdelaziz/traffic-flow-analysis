@@ -2,14 +2,20 @@
 
 | File | What it shows |
 |---|---|
-| `light_cctv052x2004080516x01640.mp4` | annotated light-traffic clip: boxes, ids, speeds, measurement zone |
-| `medium_cctv052x2004080516x01638.mp4` | the same for medium traffic |
-| `heavy_cctv052x2004080516x01646.mp4` | the same for heavy traffic |
-| `fundamental_diagram.png` | speed against density over all 254 clips, with the fitted curve |
-| `hour_profile.png` | level of service by hour of day |
-| `lane_usage.png` | lane occupancy |
-| `speed_distribution.png` | speeds per class against the posted limit |
-| `what_the_shapes_are.png` | two frames before and after annotation: the measurement zone, and each vehicle's box with id, type and speed |
+| `light_cctv052x2004080516x01640.mp4` | annotated light-traffic clip: boxes, ids, types, speeds · `yolo26m` |
+| `medium_cctv052x2004080516x01638.mp4` | the same for medium traffic · `yolo26m` |
+| `heavy_cctv052x2004080516x01646.mp4` | the same for heavy traffic · `yolo26m` |
+| `what_the_shapes_are.png` | the busiest frame of the light and heavy clips, raw beside annotated · `yolo26m` |
+| `fundamental_diagram.png` | speed against density over all 254 clips, with the fitted curve · batch pass, `yolo11n` |
+| `hour_profile.png` | level of service by hour of day · batch pass, `yolo11n` |
+| `lane_usage.png` | lane occupancy · batch pass, `yolo11n` |
+| `speed_distribution.png` | speeds per class against the posted limit · batch pass, `yolo11n` |
+| `notebooks/` | the Colab notebooks' saved figures and `results.md` with their text results (calibration, fine-tune scores) |
+
+The three videos and the before/after image come from `python run.py demo`, which detects just
+those clips with the default checkpoint (`yolo26m`) at imgsz 1280, so distant vehicles are
+still found. On three clips that takes minutes; over all 254 it would take many hours. The four charts cover all
+254 clips, so they come from the batch pass (`run.py detect` then `run.py all`).
 | `website_demo.mp4` | *to record:* the website live on a heavy clip, an upload, and the Results tab |
 | `live_heavy.png` · `live_light.png` · `results.png` | *to capture:* screenshots of the website |
 

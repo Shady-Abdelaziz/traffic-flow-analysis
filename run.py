@@ -239,6 +239,112 @@ def stage_visuals(args, paths: Paths) -> None:
             print(f"  {path}")
 
 
+def stage_demo(args, paths: Paths) -> None:
+    """The demo clips with the default detector: annotated videos and a before/after image in demo/.
+
+    Only three clips, so the accurate default checkpoint at a large input size (``--imgsz``,
+    1280 by default: distant vehicles stay several pixels across) costs minutes here, where
+    a whole pass like that costs many hours. Their tables go to ``output/demo_tracks/``,
+    apart from the batch tables, so the dataset-wide results never mix two detectors.
+    """
+    import cv2
+    import numpy as np
+
+    from trafficflow.detector import DetectorConfig, detect_clip, load_model
+    from trafficflow.overlay import annotate_frame, clip_badge, render_overlay
+    from trafficflow.pipeline import analyse_clip, road_frame_from
+    from trafficflow.tracks import TrackTable, stale_fields, write_settings, write_tracks
+    from trafficflow.video import read_frame
+
+    db, site = _load(paths)
+    calibration = load_calibration(paths.calibration)
+    config = DetectorConfig(imgsz=args.imgsz)
+    demo, tracks = paths.root / "demo", paths.output / "demo_tracks"
+    tracks.mkdir(parents=True, exist_ok=True)
+    print(f"Demo clips with {config.weights}, imgsz={config.imgsz}, conf={config.confidence}.")
+
+    model, panels = None, []
+    for traffic_class in ("light", "medium", "heavy"):
+        clip = db.by_class(traffic_class)[0]
+        table_path = tracks / f"{clip.name}.csv"
+        if not table_path.exists() or stale_fields(table_path, config):
+            if model is None:
+                model = load_model(config)
+            started = time.perf_counter()
+            write_tracks(table_path, detect_clip(clip, db.data_root, site.image, config, model=model))
+            write_settings(table_path, config)
+            print(f"  detected {clip.name} in {time.perf_counter() - started:.0f}s", flush=True)
+
+        table = TrackTable.load(table_path)
+        frame = road_frame_from(site, calibration, clip.day_index)
+        parameters = analyse_clip(clip, table, frame, site.level_of_service, site.image.fps)
+        print(f"  {render_overlay(clip, table, parameters, db.data_root, demo / f'{traffic_class}_{clip.name}.mp4')}")
+
+        if traffic_class in ("light", "heavy"):
+            # The busiest frame of the clip, raw beside annotated.
+            number, rows = max(table.iter_frames(), key=lambda item: len(item[1]))
+            image = read_frame(clip.video_path(db.data_root), int(number))
+            speeds = {estimate.track_id: estimate for estimate in parameters.speeds}
+            raw = cv2.resize(image, None, fx=3, fy=3, interpolation=cv2.INTER_NEAREST)
+            panels.append(np.hstack([raw, annotate_frame(image, rows, speeds, clip_badge(parameters))]))
+
+    target = demo / "what_the_shapes_are.png"
+    cv2.imwrite(str(target), np.vstack(panels))
+    print(f"  {target}")
+
+    for written in _export_notebook_results(paths.root / "notebooks", demo / "notebooks"):
+        print(f"  {written}")
+
+
+def _export_notebook_results(notebooks: Path, target: Path) -> list[Path]:
+    """Copy the saved Colab outputs of every notebook into ``target``.
+
+    Each figure is named after the notebook and the section heading above it, and the text
+    results go to one ``results.md``, so a reader sees what the GPU stages produced without
+    opening Jupyter. Install logs, warnings and progress bars are left out.
+    """
+    import base64
+    import re
+
+    noise = re.compile(r"warn|Download|%\||\x1b|\[\?25|torch\.onnx|return cls|Building wheel|<Figure|<IPython"
+                       r"|NystromAttention|pretrained weights|EdgeGuidedLocalSSI|^\s*$", re.I)
+    target.mkdir(parents=True, exist_ok=True)
+    written, lines = [], ["# Notebook results", "", "Saved outputs of the Colab runs, copied by `python run.py demo`.", ""]
+    for notebook in sorted(notebooks.glob("*.ipynb")):
+        lines += [f"## {notebook.name}", ""]
+        heading, shown = notebook.stem, None
+        for cell in json.loads(notebook.read_text(encoding="utf-8"))["cells"]:
+            source = "".join(cell["source"]).strip()
+            if cell["cell_type"] == "markdown" and source.startswith("#"):
+                heading = source.splitlines()[0].lstrip("#").strip()
+                continue
+            images, texts = [], []
+            for output in cell.get("outputs", []):
+                data = output.get("data", {})
+                if "image/png" in data:
+                    slug = re.sub(r"[^a-z0-9]+", "_", heading.lower()).strip("_")
+                    path = target / f"{notebook.stem}_{slug}.png"
+                    n = 2
+                    while path in written:  # a second figure under the same heading
+                        path, n = target / f"{notebook.stem}_{slug}_{n}.png", n + 1
+                    path.write_bytes(base64.b64decode(data["image/png"]))
+                    written.append(path)
+                    images.append(path)
+                text = "".join(output.get("text", data.get("text/plain", "")))
+                texts += [line for line in text.splitlines() if not noise.search(line)]
+            if not (images or texts):
+                continue
+            if heading != shown:
+                lines += [f"### {heading}", ""]
+                shown = heading
+            lines += [line for path in images for line in (f"![{heading}]({path.name})", "")]
+            if texts:
+                lines += ["```", *texts, "```", ""]
+    report = target / "results.md"
+    report.write_text("\n".join(lines), encoding="utf-8")
+    return [*written, report]
+
+
 def stage_report(args, paths: Paths) -> None:
     """Write the insights and recommendations."""
     from trafficflow.insights import build_report, write_report
@@ -331,6 +437,11 @@ def build_parser() -> argparse.ArgumentParser:
     visuals = sub.add_parser("visuals", help="render figures and annotated video")
     visuals.add_argument("--videos", action="store_true", help="also render annotated clips")
     visuals.set_defaults(func=stage_visuals)
+
+    demo = sub.add_parser("demo", help="demo clips with the default detector: videos and image in demo/")
+    demo.add_argument("--imgsz", type=int, default=1280,
+                      help="inference size for the demo clips (default: 1280, for quality)")
+    demo.set_defaults(func=stage_demo)
 
     report = sub.add_parser("report", help="write insights and recommendations")
     report.set_defaults(func=stage_report)
