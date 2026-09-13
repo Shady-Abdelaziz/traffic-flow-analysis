@@ -284,7 +284,7 @@ def stage_demo(args, paths: Paths) -> None:
         parameters = analyse_clip(clip, table, frame, site.level_of_service, site.image.fps)
         print(f"  {render_overlay(clip, table, parameters, db.data_root, demo / f'{traffic_class}_{clip.name}.mp4')}")
 
-        if traffic_class in ("light", "heavy"):
+        if traffic_class == "light":
             # The busiest frame of the clip, raw beside annotated.
             number, rows = max(table.iter_frames(), key=lambda item: len(item[1]))
             image = read_frame(clip.video_path(db.data_root), int(number))

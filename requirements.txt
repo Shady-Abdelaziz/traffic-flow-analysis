@@ -1,38 +1,33 @@
-# Local environment (Windows, CPU only).
+# Python 3.11+, CPU only.
 #
-# Install PyTorch FIRST, from the CPU index -- ultralytics needs it for detection, and
-# the default wheels pull ~2.5 GB of CUDA libraries this machine cannot use. Its GPU is
-# an AMD Radeon R7 M440: no CUDA, and ROCm is Linux-only and does not reach that card.
+# Install PyTorch first, from the CPU index, so pip does not pull ~2.5 GB of CUDA libraries:
 #
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 #   pip install -r requirements.txt
 #
-# The congestion classifier deliberately does NOT go through torch. It arrives from
-# Colab as ONNX and is read by onnxruntime, so the local inference path does not depend
-# on the torch build that trained it -- and does not depend on torch.jit, which is
-# deprecated from Python 3.14 on.
+# The congestion classifier runs through onnxruntime, not torch.
 
 numpy>=1.26
 opencv-python>=4.9
 pyyaml>=6.0
 
-# detection and tracking
+# detection and tracking (YOLO + ByteTrack)
 ultralytics>=8.3
 
-# congestion classifier: reads the ONNX exported by 02_finetune.ipynb
+# congestion classifier: the ONNX model exported by notebooks/02_finetune.ipynb
 onnxruntime>=1.17
 
-# baselines and data handling
+# parameter classifier and baselines
 scikit-learn>=1.4
-pandas>=2.2
 
-# figures
+# charts
 matplotlib>=3.8
 
-# serving layer
+# web app
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
 
 # tests
 pytest>=8.0
+httpx>=0.27
